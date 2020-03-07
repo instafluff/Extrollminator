@@ -1,0 +1,36 @@
+{
+  "name": "extrollminator",
+  "version": "1.0.0",
+  "description": "Extrollminator: the only bot you need to keep your streams friendly, neighborly, and troll-free.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/instafluff/Extrollminator.git"
+  },
+  "keywords": [
+    "Troll",
+    "Twitch",
+    "Bot",
+    "Prevention",
+    "Protect",
+    "Troll-free",
+    "Friendly",
+    "Neighborly",
+    "Comfy",
+    "Instafluff",
+    "Ban",
+    "Timeout"
+  ],
+  "author": "Instafluff",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/instafluff/Extrollminator/issues"
+  },
+  "homepage": "https://github.com/instafluff/Extrollminator#readme",
+  "dependencies": {
+    "webwebweb": "^1.1.10"
+  }
+}
