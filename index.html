@@ -1,233 +1,51 @@
-<html>
-	<head>
-		<title>Extrollminator: the only bot you need to keep your streams friendly, neighborly, and troll-free.</title>
-		<script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
-	</head>
-	<body>
-		<script>
-			// -- Suspiciousness Ranking Factors --
-			// ~Account Created Time
-			// ~Account Follow Time
-			// ~Badges (isSubscriber, isBit, hasBadge)
-			// Number of approved chat messages
-			// length of time in chat
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-			// -- Suspiciousness Message Factors --
-			// Is Ascii Art
-			// Is Link
-			// Is Repeated Message
-			// Accumulated Message Sentiment value
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
 
-			let accounts = {};
-			let isExtrollminating = true;
-			let immunityTimer = null;
+    <title>Extrollminator: the only bot you need to keep your streams friendly, neighborly, and troll-free.</title>
+	<script src="https://cdn.jsdelivr.net/npm/comfytwitch@latest/web/comfytwitch.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.6/dist/clipboard.min.js"></script>
+  </head>
+  <body>
+	  <div class="container-fluid">
+		  <h1>Extrollminator Link Generator!</h1>
+		  <button id="login" class="btn btn-lg btn-primary">Log In with Twitch</button>
+		  <button id="copy-link" class="btn btn-lg btn-success">Copy Link</button>
+	  </div>
 
-			let channel = null;
 
-			async function lookupChannel( channelname ) {
-				let result = await fetch( `https://cors-anywhere.herokuapp.com/https://api.twitch.tv/helix/users?login=${channelname}`, {
-					headers: {
-						"Client-ID": "2odsv8xermvalbub7wipebrphqlpqv"
-					}
-				} ).then( r => r.json() );
-				channel = result.data[ 0 ];
-				console.log( channel );
-			}
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+	<script>
+		const clientId = "wu7qd6tn0uc5n05u2tjy3snl20da76";
+		const baseUrl = window.location.origin + window.location.pathname;
+        const scopes = [ "user:read:email", "chat:read", "chat:edit", "channel:moderate", "user_read" ];
 
-			async function calculateUserComfiness( user, extra ) {
-				let comfyScore = 0;
-				let isNew = await isNewbieToTwitch( extra.userId );
-				let isNewFollower = await isNewbieToChannel( extra.userId, channel.id )
-				let followScore = accounts[ extra.userId ].followDate ? Math.min( 12, moment().diff( moment( accounts[ extra.userId ].followDate ), "months" ) ) : 0;
-				let hasBadges = extra.userBadges || false;
-				let badgeScore = hasBadges ? calculateBadgeScore( extra.userBadges ) : 0;
-				let chatScore = accounts[ extra.userId ].chat;
+		new ClipboardJS( '.btn' );
 
-				// console.log( accounts[ extra.userId ] );
-
-				// Calculate Score
-				if( isNew ) {
-					comfyScore -= 10;
-				}
-				if( !accounts[ extra.userId ].isFollowing ) {
-					comfyScore -= 10;
-				}
-				if( isNewFollower ) {
-					comfyScore -= 5;
-				}
-				comfyScore += followScore;
-				comfyScore += badgeScore;
-				comfyScore += chatScore;
-				// console.log( user, comfyScore );
-				return comfyScore;
-			}
-
-			function calculateBadgeScore( badges ) {
-				let score = 0;
-				let badgeKeys = Object.keys( badges );
-				score += badgeKeys.length;
-				if( badges[ "broadcaster" ] || badges[ "moderator" ] || badges[ "vip" ] ) {
-					score += 100;
-				}
-				if( badges[ "founder" ] ) {
-					score += 12;
-				}
-				if( badges[ "subscriber" ] ) {
-					score += Math.min( 12, parseInt( badges[ "subscriber" ] ) );
-				}
-				return score;
-			}
-
-			function calculateMessageComfiness( message ) {
-				let messageScore = 0;
-				if( isMessageASCIIingForTrouble( message ) ) {
-					// console.log( "SUSPICIOUS" );
-					// console.log( message );
-					messageScore -= 10;
-				}
-				if( isWebLinkies( message ) ) {
-					// console.log( "LINKIES!!!" );
-					// console.log( message );
-					messageScore -= 5;
-				}
-				// TODO: Add bad words filter / sentiment
-				return messageScore;
-			}
-
-			ComfyJS.onCommand = ( user, command, message, flags, extra ) => {
-				handleMessage( user, `!${command} ${message}`, extra );
-				if( flags.broadcaster || flags.mod ) {
-					if( command === "trolloff" ) {
-						turnOffExtrollminator();
-					}
-				}
-			};
-			ComfyJS.onChat = ( user, message, flags, self, extra ) => {
-				handleMessage( user, message, extra );
-			};
-			ComfyJS.onRaid = ( user, viewers ) => {
-				turnOffExtrollminator();
-			};
-			const params = new URLSearchParams( location.search );
-			ComfyJS.Init( params.get( "channel" ), params.get( "oauth" ) );
-			lookupChannel( params.get( "channel" ) );
-
-			function turnOffExtrollminator( time = 60000 ) {
-				if( immunityTimer ) {
-					clearTimeout( immunityTimer );
-				}
-				ComfyJS.Say( `Extrollminator is taking a break for ${time  / 1000} seconds` );
-				isExtrollminating = false;
-				immunityTimer = setTimeout( () => {
-					isExtrollminating = true;
-				}, time );
-			}
-
-			async function handleMessage( user, message, extra ) {
-				if( !isExtrollminating ) {
-					return;
-				}
-				let userScore = await calculateUserComfiness( user, extra );
-				if( accounts[ extra.userId ] ) {
-					// Check for last account message time
-					if( !accounts[ extra.userId ].timestamp ) {
-						accounts[ extra.userId ].timestamp = moment();
-					}
-					let chatTimeDiff = moment().diff( accounts[ extra.userId ].timestamp, "seconds" );
-					accounts[ extra.userId ].timestamp = moment();
-					// accounts[ extra.userId ].chat = Math.min( 10, Math.min( chatTimeDiff - 2, 1 ) + ( accounts[ extra.userId ].chat || 0 ) );
-				}
-				if( accounts[ extra.userId ] && !accounts[ extra.userId ].user ) {
-					accounts[ extra.userId ].user = user;
-				}
-
-				let messageScore = calculateMessageComfiness( message, extra );
-				console.log( user, userScore, messageScore, userScore + messageScore );
-				if( userScore + messageScore < 0 ) {
-					console.log( "NAUGHTY SUSPICIOUS MESSAGE FROM", user, message );
-					ComfyJS.DeleteMessage( extra.id );
-					ComfyJS.Say( `Sorry, ${user}. Your message seemed suspicious and has been auto-deleted for safety.` );
-				}
-			}
-
-			function isMessageASCIIingForTrouble( message ) {
-				if( !( /^[\x00-\xFF]*$/.test( message ) ||
-					/^[\x00-\x7F]*$/.test( message ) ) ) {
-					for( let n = 0; n < message.length; n++ ) {
-						var a = message.charCodeAt(n);
-						if( a >= 8592 && a < 11264 ) {
-							return true;
-						}
-					}
-				}
-				return false;
-			}
-
-			function isWebLinkies( message ) {
-				return /(^|\s)(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?(\s|$)/gm.test( message ) ||
-					/(^|\s)(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]*\.?twitch\.tv(\/.*)?(\s|$)/gm.test( message );
-			}
-
-			async function isNewbieToChannel( userId, channelId ) {
-				if( userId === channelId ) { return false; }
-
-				if( !accounts[ userId ] || accounts[ userId ].isFollowing === undefined ) {
-					let result = await fetch( `https://cors-anywhere.herokuapp.com/https://api.twitch.tv/helix/users/follows?from_id=${userId}&to_id=${channelId}`, {
-						headers: {
-							"Client-ID": "2odsv8xermvalbub7wipebrphqlpqv"
-						}
-					} ).then( r => r.json() );
-					if( result ) {
-						accounts[ userId ] = {
-							userId,
-							score: 0,
-							chat: 0,
-							isNew: false,
-							isFollowing: result.total > 0 ? true : false,
-							isNewFollower: false,
-						};
-						if( accounts[ userId ].isFollowing ) {
-							let dayDiff = moment().diff( moment( result.data[ 0 ].followed_at ), "days" );
-							accounts[ userId ].isNewFollower = ( dayDiff <= 1 );
-							accounts[ userId ].followDate = result.data[ 0 ].followed_at;
-						}
-						return accounts[ userId ].isNewFollower;
-					}
-					return false;
-				}
-				else {
-					return accounts[ userId ].isNewFollower;
-				}
-			}
-
-			async function isNewbieToTwitch( userId ) {
-				if( !accounts[ userId ] || accounts[ userId ].isNew === undefined ) {
-					let result = await fetch( `https://cors-anywhere.herokuapp.com/https://api.twitch.tv/kraken/users/${userId}`, {
-						headers: {
-							"Accept": "application/vnd.twitchtv.v5+json",
-							"Client-ID": "2odsv8xermvalbub7wipebrphqlpqv"
-						}
-					} ).then( r => r.json() );
-					if( result ) {
-						accounts[ userId ] = {
-							userId,
-							score: 0,
-							chat: 0,
-							isNew: false,
-						};
-						let dayDiff = moment().diff( moment( result.created_at ), "days" );
-						accounts[ userId ].isNew = ( dayDiff <= 1 );
-						return accounts[ userId ].isNew;
-					}
-					return false;
-				}
-				else {
-					return accounts[ userId ].isNew;
-				}
-			}
-		</script>
-	</body>
-	<dong>
-	</dong>
+		ComfyTwitch.Check()
+        .then( result => {
+			console.log( result );
+            if( result ) {
+                // Logged In
+				$( "#copy-link" ).attr( "data-clipboard-text", `${baseUrl}extrollminator.html?oauth=${result.token}&channel=instafluff` );
+            }
+            else {
+                // Logged Out
+				document.querySelector( "#login" ).addEventListener( "click", function() {
+                    ComfyTwitch.Login( clientId, baseUrl, scopes );
+                });
+            }
+        });
+	</script>
+  </body>
 </html>

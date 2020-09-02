@@ -1,0 +1,250 @@
+<html>
+	<head>
+		<title>Extrollminator: the only bot you need to keep your streams friendly, neighborly, and troll-free.</title>
+		<script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/comfytwitch@latest/web/comfytwitch.min.js"></script>
+	</head>
+	<body>
+		<script>
+			// -- Suspiciousness Ranking Factors --
+			// ~Account Created Time
+			// ~Account Follow Time
+			// ~Badges (isSubscriber, isBit, hasBadge)
+			// Number of approved chat messages
+			// length of time in chat
+
+			// -- Suspiciousness Message Factors --
+			// Is Ascii Art
+			// Is Link
+			// Is Repeated Message
+			// Accumulated Message Sentiment value
+
+			let accounts = {};
+			let isExtrollminating = true;
+			let immunityTimer = null;
+
+			let channel = null;
+
+			async function lookupChannel( channelname, token ) {
+				let result = await fetch( `https://api.twitch.tv/helix/users?login=${channelname}`, {
+					headers: {
+						"Client-ID": "wu7qd6tn0uc5n05u2tjy3snl20da76",
+						"Authorization": `Bearer ${token}`
+					}
+				} ).then( r => r.json() );
+				// console.log( result );
+				channel = result.data[ 0 ];
+				// console.log( channel );
+			}
+
+			async function calculateUserComfiness( user, extra, token ) {
+				// console.log( extra );
+				let comfyScore = 0;
+				let isNew = await isNewbieToTwitch( extra.userId, token );
+				let isNewFollower = await isNewbieToChannel( extra.userId, channel.id, token );
+				let followScore = accounts[ extra.userId ] ? ( accounts[ extra.userId ].followDate ? Math.min( 12, moment().diff( moment( accounts[ extra.userId ].followDate ), "months" ) ) : 0 ) : 0;
+				let hasBadges = extra.userBadges || false;
+				let badgeScore = hasBadges ? calculateBadgeScore( extra.userBadges ) : 0;
+				let chatScore = accounts[ extra.userId ] ? accounts[ extra.userId ].chat : 0;
+
+				// console.log( user, isNew, isNewFollower, followScore, hasBadges, badgeScore, chatScore );
+
+				// console.log( accounts[ extra.userId ] );
+
+				// Calculate Score
+				if( isNew ) {
+					comfyScore -= 10;
+				}
+				if( accounts[ extra.userId ] && !accounts[ extra.userId ].isFollowing ) {
+					comfyScore -= 10;
+				}
+				if( isNewFollower ) {
+					comfyScore -= 5;
+				}
+				comfyScore += followScore;
+				comfyScore += badgeScore;
+				comfyScore += chatScore;
+				// console.log( user, comfyScore );
+				return comfyScore;
+			}
+
+			function calculateBadgeScore( badges ) {
+				let score = 0;
+				let badgeKeys = Object.keys( badges );
+				score += badgeKeys.length;
+				if( badges[ "broadcaster" ] || badges[ "moderator" ] || badges[ "vip" ] ) {
+					score += 100;
+				}
+				if( badges[ "founder" ] ) {
+					score += 12;
+				}
+				if( badges[ "subscriber" ] ) {
+					score += Math.min( 12, parseInt( badges[ "subscriber" ] ) );
+				}
+				return score;
+			}
+
+			function calculateMessageComfiness( message ) {
+				let messageScore = 20; // TODO: Reset to zero when adding sentiment score
+				if( isMessageASCIIingForTrouble( message ) ) {
+					// console.log( "SUSPICIOUS" );
+					// console.log( message );
+					messageScore -= 11;
+				}
+				if( isWebLinkies( message ) ) {
+					// console.log( "LINKIES!!!" );
+					// console.log( message );
+					messageScore -= 5;
+				}
+				// TODO: Add bad words filter / sentiment
+				return messageScore;
+			}
+
+			ComfyJS.onCommand = ( user, command, message, flags, extra ) => {
+				handleMessage( user, `!${command} ${message}`, extra, params.get( "oauth" ) );
+				if( flags.broadcaster || flags.mod ) {
+					if( command === "trolloff" ) {
+						turnOffExtrollminator();
+					}
+				}
+			};
+			ComfyJS.onChat = ( user, message, flags, self, extra ) => {
+				handleMessage( user, message, extra, params.get( "oauth" ) );
+			};
+			ComfyJS.onRaid = ( user, viewers ) => {
+				turnOffExtrollminator( 18000 );
+			};
+			const params = new URLSearchParams( location.search );
+			ComfyJS.Init( params.get( "channel" ), params.get( "oauth" ) );
+			lookupChannel( params.get( "channel" ), params.get( "oauth" ) );
+
+			function turnOffExtrollminator( time = 60000 ) {
+				if( immunityTimer ) {
+					clearTimeout( immunityTimer );
+				}
+				ComfyJS.Say( `Extrollminator is taking a break for ${time  / 1000} seconds` );
+				isExtrollminating = false;
+				immunityTimer = setTimeout( () => {
+					isExtrollminating = true;
+				}, time );
+			}
+
+			async function handleMessage( user, message, extra, token ) {
+				if( !isExtrollminating ) {
+					return;
+				}
+				let userScore = await calculateUserComfiness( user, extra, token );
+				if( accounts[ extra.userId ] ) {
+					// Check for last account message time
+					if( !accounts[ extra.userId ].timestamp ) {
+						accounts[ extra.userId ].timestamp = moment();
+					}
+					let chatTimeDiff = moment().diff( accounts[ extra.userId ].timestamp, "seconds" );
+					accounts[ extra.userId ].timestamp = moment();
+					// accounts[ extra.userId ].chat = Math.min( 10, Math.min( chatTimeDiff - 2, 1 ) + ( accounts[ extra.userId ].chat || 0 ) );
+				}
+				if( accounts[ extra.userId ] && !accounts[ extra.userId ].user ) {
+					accounts[ extra.userId ].user = user;
+				}
+
+				let messageScore = calculateMessageComfiness( message, extra );
+				console.log( user, userScore, messageScore, userScore + messageScore );
+				if( userScore + messageScore < 0 ) {
+					console.log( "NAUGHTY SUSPICIOUS MESSAGE FROM", user, message );
+					ComfyJS.DeleteMessage( extra.id );
+					ComfyJS.Say( `Sorry, ${user}. Your message seemed suspicious and has been auto-deleted for safety.` );
+				}
+			}
+
+			function isMessageASCIIingForTrouble( message ) {
+				if( !( /^[\x00-\xFF]*$/.test( message ) ||
+					/^[\x00-\x7F]*$/.test( message ) ) ) {
+					for( let n = 0; n < message.length; n++ ) {
+						var a = message.charCodeAt(n);
+						if( a >= 8592 && a < 11264 ) {
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+
+			function isWebLinkies( message ) {
+				// TODO: Better link detection (e.g. www.silly-website-test.com)
+				return /(^|\s)(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?(\s|$)/igm.test( message ) ||
+					/(^|\s)(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]*\.?twitch\.tv(\/.*)?(\s|$)/igm.test( message );
+			}
+
+			async function isNewbieToChannel( userId, channelId, token ) {
+				if( userId === channelId ) { return false; }
+
+				if( !userId ) {
+					return false; // We can't determine the user
+				}
+
+				if( !accounts[ userId ] || accounts[ userId ].isFollowing === undefined ) {
+					let result = await fetch( `https://api.twitch.tv/helix/users/follows?from_id=${userId}&to_id=${channelId}`, {
+						headers: {
+							"Client-ID": "wu7qd6tn0uc5n05u2tjy3snl20da76",
+							"Authorization": `Bearer ${token}`
+						}
+					} ).then( r => r.json() );
+					// console.log( result );
+					if( result ) {
+						accounts[ userId ] = {
+							userId,
+							score: 0,
+							chat: 0,
+							isNew: false,
+							isFollowing: result.total > 0 ? true : false,
+							isNewFollower: false,
+						};
+						if( accounts[ userId ].isFollowing ) {
+							let hoursDiff = moment().diff( moment( result.data[ 0 ].followed_at ), "hours" );
+							accounts[ userId ].isNewFollower = ( hoursDiff <= 5 );
+							accounts[ userId ].followDate = result.data[ 0 ].followed_at;
+						}
+						return accounts[ userId ].isNewFollower;
+					}
+					return false;
+				}
+				else {
+					return accounts[ userId ].isNewFollower;
+				}
+			}
+
+			async function isNewbieToTwitch( userId, token ) {
+				if( !userId ) {
+					return false; // We can't determine the user
+				}
+				if( !accounts[ userId ] || accounts[ userId ].isNew === undefined ) {
+					let result = await fetch( `https://api.twitch.tv/kraken/users/${userId}`, {
+						headers: {
+							"Accept": "application/vnd.twitchtv.v5+json",
+							"Client-ID": "wu7qd6tn0uc5n05u2tjy3snl20da76",
+							"Authorization": `OAuth ${token}`
+						}
+					} ).then( r => r.json() );
+					if( result ) {
+						accounts[ userId ] = {
+							userId,
+							score: 0,
+							chat: 0,
+							isNew: false,
+						};
+						let dayDiff = moment().diff( moment( result.created_at ), "days" );
+						accounts[ userId ].isNew = ( dayDiff <= 1 );
+						return accounts[ userId ].isNew;
+					}
+					return false;
+				}
+				else {
+					return accounts[ userId ].isNew;
+				}
+			}
+		</script>
+	</body>
+	<dong>
+	</dong>
+</html>
