@@ -219,8 +219,8 @@
                 // document.querySelector( "#login-group" ).setAttribute( "hidden", true );
 				document.querySelector( "#profile-group" ).removeAttribute( "hidden" );
 				// $( "#copy-link" ).attr( "data-clipboard-text", `${baseUrl}extrollminator.html?oauth=${result.token}&channel=instafluff` );
-				ComfyJS.Init( params.get( "channel" ), result.token );
-				lookupChannel( params.get( "channel" ), result.token );
+				ComfyJS.Init( params.get( "channel" ) || ( window.localStorage.getItem( "channel" ) || result.login ), result.token );
+				lookupChannel( params.get( "channel" ) || ( window.localStorage.getItem( "channel" ) || result.login ), result.token );
 				// validateToken( params.get( "channel" ), result.token );
                 document.querySelectorAll( ".logged-out" ).forEach( x => x.setAttribute( "hidden", true ) );
                 document.querySelectorAll( ".logged-in" ).forEach( x => x.removeAttribute( "hidden" ) );
