@@ -1,5 +1,7 @@
 <html>
 	<head>
+      <!-- Required meta tags -->
+      <meta charset="utf-8">
 		<title>Extrollminator: the only bot you need to keep your streams friendly, neighborly, and troll-free.</title>
 		<script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
@@ -25,6 +27,24 @@
 			let immunityTimer = null;
 
 			let channel = null;
+			const sampleAscii = "⣿⣿⡟⠛⠛⠛⠿⠿⠿⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿ ⣿⣿⠀⠀⣴⡄⠀⠀⠀⠀⢀⠀⠀⠀⢉⡉⠉⠉⠛⠛⠛⠛⠿⠿⠿⢿⣿⣿⣿⣿ ⣿⣿⠀⢸⣿⣇⣠⣾⡆⣾⣿⠇⣠⣴⡾⣿⣇⠀⠀⢀⢂⣶⣄⠀⠀⣤⣤⣄⠀⣿ ⣿⡇⠀⠸⣿⣿⡿⢿⣷⣿⡏⢰⣿⣿⣤⣿⣿⠀⢠⣿⡟⢹⣿⡀⠀⣿⣿⡏⠀⣿ ⣿⣇⣀⣀⣙⠛⠁⠘⠻⠛⠀⢿⡿⠉⠉⣿⣿⠀⣾⣿⠿⢿⣿⡇⠀⠹⠟⠀⢸⣿ ⣿⡿⠉⢻⣿⣿⣿⠛⠻⣶⣞⠻⡌⠢⢤⣤⣀⣀⣉⣁⠀⠀⠛⠃⠘⢿⠗⠀⢸⣿ ⣿⡇⠀⠀⢻⣿⣿⡶⢚⡉⠁⠀⠀⠀⠀⠈⠙⠻⢿⡋⠉⢻⣿⣿⣶⡶⠶⣶⣿⣿ ⣿⠃⠀⠀⠀⣿⢫⠞⠋⠹⡆⠀⠀⠀⠀⣠⠶⢶⣄⠙⣶⣿⣿⣿⠋⠀⠀⣿⣿⣿ ⣿⠀⠀⠀⠐⠃⠋⠀⠀⠀⢁⣀⣀⡀⠘⠁⠀⠀⣿⠀⠘⣿⡿⠁⠀⠀⢸⣿⣿⣿ ⣿⠀⠀⠀⠀⠀⣀⣀⣀⣀⣈⠛⠛⠃⠀⠀⠀⠀⠉⠀⢠⠟⠀⠀⠀⠀⣿⣿⣿⣿ ⣿⠀⠀⠀⠀⢸⠁⠀⠀⠀⠈⠉⠉⠙⠒⠒⠤⣄⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿ ⣿⡇⠀⠀⠀⠈⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡸⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿ ⣿⡇⠀⠀⠀⠀⠸⡄⠀⠀⠀⠀⠀⠀⠀⠀⡰⠁⠀⠀⠀⠀⠀⣠⣿⣿⣿⣿⣿⣿ ⣿⣷⠀⠀⠀⠀⠀⠙⢦⡀⠀⠀⠀⢀⡠⠊⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿ ⣾⣿⡄⠀⠀⠀⠀⠀⠀⠉⠙⠛⠋⠉⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿";
+
+			async function validateToken( channel, token ) {
+				let result = await fetch( `https://id.twitch.tv/oauth2/validate`, {
+					headers: {
+						"Authorization": `OAuth ${token}`
+					}
+				}).then( r => r.json() );
+				if( result.expires_in < 60 * 60 * 24 * 30 ) {
+					ComfyJS.Say( `@${channel} Extrollminator needs a refresh! Please renew the link at https://www.instafluff.tv/Extrollminator` );
+				}
+				else if( result.expires_in <= 0 ) {
+					console.log( "EXPIRED!" );
+				}
+				console.log( result );
+				console.log( moment().add( result.expires_in, "seconds" ).fromNow() );
+				ComfyJS.Say( sampleAscii );
+			}
 
 			async function lookupChannel( channelname, token ) {
 				let result = await fetch( `https://api.twitch.tv/helix/users?login=${channelname}`, {
@@ -50,7 +70,9 @@
 
 				// console.log( user, isNew, isNewFollower, followScore, hasBadges, badgeScore, chatScore );
 
-				// console.log( accounts[ extra.userId ] );
+				console.log( "extra", extra );
+				console.log( accounts );
+				console.log( accounts[ extra.userId ] );
 
 				// Calculate Score
 				if( isNew ) {
@@ -88,12 +110,12 @@
 			function calculateMessageComfiness( message ) {
 				let messageScore = 20; // TODO: Reset to zero when adding sentiment score
 				if( isMessageASCIIingForTrouble( message ) ) {
-					// console.log( "SUSPICIOUS" );
+					console.log( "SUSPICIOUS" );
 					// console.log( message );
 					messageScore -= 11;
 				}
 				if( isWebLinkies( message ) ) {
-					// console.log( "LINKIES!!!" );
+					console.log( "LINKIES!!!" );
 					// console.log( message );
 					messageScore -= 5;
 				}
@@ -113,11 +135,12 @@
 				handleMessage( user, message, extra, params.get( "oauth" ) );
 			};
 			ComfyJS.onRaid = ( user, viewers ) => {
-				turnOffExtrollminator( 18000 );
+				turnOffExtrollminator( 120000 );
 			};
 			const params = new URLSearchParams( location.search );
 			ComfyJS.Init( params.get( "channel" ), params.get( "oauth" ) );
 			lookupChannel( params.get( "channel" ), params.get( "oauth" ) );
+			validateToken( params.get( "channel" ), params.get( "oauth" ) );
 
 			function turnOffExtrollminator( time = 60000 ) {
 				if( immunityTimer ) {

@@ -1,22 +1,133 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<!-- Required meta tags -->
+	<meta charset="utf-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+	<link href="https://fonts.googleapis.com/css?family=Fredoka+One|Open+Sans&display=swap" rel="stylesheet">
 
     <title>Extrollminator: the only bot you need to keep your streams friendly, neighborly, and troll-free.</title>
 	<script src="https://cdn.jsdelivr.net/npm/comfytwitch@latest/web/comfytwitch.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.6/dist/clipboard.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
+	<script src="https://use.fontawesome.com/7ccab66fd7.js"></script>
+
+    <style>
+      html, body {
+          font-family: "Fredoka One", "sans-serif";
+          color: #ffffff;
+          background-color: #333;
+      }
+
+  	.translucent-purple-bg {
+  		background-color: rgba( 100, 65, 165, 0.5 );
+  		border-color: rgba( 100, 65, 165, 0.5 );
+  		color: #ccc;
+  	}
+      .btn-purple-outline {
+          background-color: #fff;
+          border-color: #fff;
+          color: #6441a5;
+      }
+      .btn-purple {
+          background-color: #6441a5;
+          border-color: #6441a5;
+          color: #fff;
+      }
+      .btn-primary {
+          background-color: #4C97FF;
+          border-color: #4C97FF;
+      }
+      .btn-warning {
+          background-color: #ffa600;
+          border-color: #ffa600;
+      }
+      a, a:hover {
+          color: #ffa600;
+      }
+
+  	#login-group {
+  			position: absolute;
+  			top: 50%;
+  			left: 50%;
+  			-moz-transform: translateX(-50%) translateY(-50%);
+  			-webkit-transform: translateX(-50%) translateY(-50%);
+  			transform: translateX(-50%) translateY(-50%);
+  			z-index: 1002;
+  	}
+  	#channel-name {
+  		padding: .375rem 1.25rem;
+  	}
+  	.channel-name-quotes {
+  		position: relative;
+  	}
+  	.channel-name-quotes:before,
+  	.channel-name-quotes:after {
+  		content: '';
+  		display: none;
+  		background-repeat: no-repeat;
+  		background-position: center;
+  		background-size: contain;
+  		width: 12px;
+  		height: 12px;
+  		position: absolute;
+  		top: 8px;
+  		z-index: 10;
+  		opacity: 0.75;
+  	}
+  	.channel-name-quotes:before {
+  		background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAKCAQAAAAqJXdxAAAAn0lEQVQI1z3OMa5BURSF4f/cQhAKjUQhuQmFNwGJEUi0RKN5rU7FHKhpjEH3TEMtkdBSCY1EIv8r7nFX9e29V7EBAOvu7RPjwmWGH/VuF8CyN9/OAdvqIXYLvtRaNjx9mMTDyo+NjAN1HNcl9ZQ5oQMM3dgDUqDo1l8DzvwmtZN7mnD+PkmLa+4mhrxVA9fRowBWmVBhFy5gYEjKMfz9AylsaRRgGzvZAAAAAElFTkSuQmCC");
+  	}
+  	.channel-name-quotes:after {
+  		background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAKCAQAAAAqJXdxAAAAqUlEQVQI1z3KvUpCcRiA8ef9E4JNHhI0aFEacm1o0BsI0Slx8wa8gLauoDnoBhq7DcfWhggONDmJJgqCPA7neJ7p934EOOKOnM8Q7PDElo/4x4lFb2DmuUjcUzS3URnGib9qaPNbuXvBO3sGPHJDRG6fGVdMSeWDP2q99FQdFrz26Gu5Tq7dFMzUvbXy8KXeAj57cOklgA+u1B5AoslLtGIHQMaCVnwDnADZIFIrXsoXrgAAAABJRU5ErkJggg==");
+  	}
+  	@media (min-width: 576px) {
+  		.channel-name-quotes:before,
+  		.channel-name-quotes:after {
+  			display: block;
+  		}
+  		.channel-name-quotes:before {
+  			left: 2.875em;
+  		}
+  		.channel-name-quotes:after {
+  			right: 0.175em;
+  		}
+  	}
+  	@media (min-width: 768px) {
+  		.channel-name-quotes:after {
+  			right: 10.275em;
+  		}
+  	}
+    </style>
   </head>
-  <body>
-	  <div class="container-fluid">
-		  <h1>Extrollminator Link Generator!</h1>
-		  <button id="login" class="btn btn-lg btn-primary">Log In with Twitch</button>
-		  <button id="copy-link" class="btn btn-lg btn-success">Copy Link</button>
+  <body class="container">
+	  <div class="py-2">
+		  <!-- <button id="copy-link" class="btn btn-lg btn-success">Copy Link</button> -->
+		  <div id="profile-group" class="py-2 float-right" hidden><span><span id="username"></span> <img id="profile-image" class="rounded" src="" alt="Profile Image" height="38" width="38"></span> <button id="logout" class="btn btn-purple">Log Out</button></div>
+	    <h1><img class="pr-3" src="web/extrollminator_logo_final2.png" height="100px"/>Extrollminator</h1>
+		<p>The only bot you need to keep your streams friendly, neighborly, and troll-free.</p>
+	    <p>Tool by <a href="https://www.instafluff.tv" target="_blank">Instafluff</a>! Logo by <a href="https://twitch.tv/maayainsane" target="_blank">Maaya!</a></p>
+		<div class="pb-2 row">
+			<div class="col-6">
+				<button id="login" class="btn btn-lg btn-primary">Log In with Twitch</button>
+			</div>
+			<div class="col-6">
+				<div class="input-group translucent">
+				  <div class="input-group-prepend">
+				    <span class="input-group-text btn-purple translucent-purple-bg" id="basic-addon1"><i class="fa fa-twitch"></i></span>
+				  </div>
+				  <input id="channel-name" type="text" class="form-control translucent-purple-bg" placeholder="Channel Name" aria-label="Channel" aria-describedby="basic-addon1">
+				  <div class="input-group-append">
+					  <button id="run-code" class="btn btn-success float-right" style="width: 10rem;"><i class="fa fa-play"></i> Run Blocks</button>
+				  </div>
+				</div>
+			</div>
+		</div>
 	  </div>
 
 
@@ -29,23 +140,281 @@
 		const clientId = "wu7qd6tn0uc5n05u2tjy3snl20da76";
 		const baseUrl = window.location.origin + window.location.pathname;
         const scopes = [ "user:read:email", "chat:read", "chat:edit", "channel:moderate", "user_read" ];
+		const params = new URLSearchParams( location.search );
 
-		new ClipboardJS( '.btn' );
+		// new ClipboardJS( '.btn' );
+		document.querySelector( "#login" ).addEventListener( "click", function() {
+			ComfyTwitch.Login( clientId, baseUrl, scopes );
+		});
 
 		ComfyTwitch.Check()
         .then( result => {
-			console.log( result );
+			// console.log( result );
             if( result ) {
                 // Logged In
-				$( "#copy-link" ).attr( "data-clipboard-text", `${baseUrl}extrollminator.html?oauth=${result.token}&channel=instafluff` );
+				// $( "#copy-link" ).attr( "data-clipboard-text", `${baseUrl}extrollminator.html?oauth=${result.token}&channel=instafluff` );
+				ComfyJS.Init( params.get( "channel" ), result.token );
+				lookupChannel( params.get( "channel" ), result.token );
+				// validateToken( params.get( "channel" ), result.token );
             }
             else {
                 // Logged Out
-				document.querySelector( "#login" ).addEventListener( "click", function() {
-                    ComfyTwitch.Login( clientId, baseUrl, scopes );
-                });
+
             }
         });
+
+		// -- Suspiciousness Ranking Factors --
+		// ~Account Created Time
+		// ~Account Follow Time
+		// ~Badges (isSubscriber, isBit, hasBadge)
+		// Number of approved chat messages
+		// length of time in chat
+
+		// -- Suspiciousness Message Factors --
+		// Is Ascii Art
+		// Is Link
+		// Is Repeated Message
+		// Accumulated Message Sentiment value
+
+		let accounts = {};
+		let isExtrollminating = true;
+		let immunityTimer = null;
+
+		let channel = null;
+		const sampleAscii = "⣿⣿⡟⠛⠛⠛⠿⠿⠿⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿ ⣿⣿⠀⠀⣴⡄⠀⠀⠀⠀⢀⠀⠀⠀⢉⡉⠉⠉⠛⠛⠛⠛⠿⠿⠿⢿⣿⣿⣿⣿ ⣿⣿⠀⢸⣿⣇⣠⣾⡆⣾⣿⠇⣠⣴⡾⣿⣇⠀⠀⢀⢂⣶⣄⠀⠀⣤⣤⣄⠀⣿ ⣿⡇⠀⠸⣿⣿⡿⢿⣷⣿⡏⢰⣿⣿⣤⣿⣿⠀⢠⣿⡟⢹⣿⡀⠀⣿⣿⡏⠀⣿ ⣿⣇⣀⣀⣙⠛⠁⠘⠻⠛⠀⢿⡿⠉⠉⣿⣿⠀⣾⣿⠿⢿⣿⡇⠀⠹⠟⠀⢸⣿ ⣿⡿⠉⢻⣿⣿⣿⠛⠻⣶⣞⠻⡌⠢⢤⣤⣀⣀⣉⣁⠀⠀⠛⠃⠘⢿⠗⠀⢸⣿ ⣿⡇⠀⠀⢻⣿⣿⡶⢚⡉⠁⠀⠀⠀⠀⠈⠙⠻⢿⡋⠉⢻⣿⣿⣶⡶⠶⣶⣿⣿ ⣿⠃⠀⠀⠀⣿⢫⠞⠋⠹⡆⠀⠀⠀⠀⣠⠶⢶⣄⠙⣶⣿⣿⣿⠋⠀⠀⣿⣿⣿ ⣿⠀⠀⠀⠐⠃⠋⠀⠀⠀⢁⣀⣀⡀⠘⠁⠀⠀⣿⠀⠘⣿⡿⠁⠀⠀⢸⣿⣿⣿ ⣿⠀⠀⠀⠀⠀⣀⣀⣀⣀⣈⠛⠛⠃⠀⠀⠀⠀⠉⠀⢠⠟⠀⠀⠀⠀⣿⣿⣿⣿ ⣿⠀⠀⠀⠀⢸⠁⠀⠀⠀⠈⠉⠉⠙⠒⠒⠤⣄⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿ ⣿⡇⠀⠀⠀⠈⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡸⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿ ⣿⡇⠀⠀⠀⠀⠸⡄⠀⠀⠀⠀⠀⠀⠀⠀⡰⠁⠀⠀⠀⠀⠀⣠⣿⣿⣿⣿⣿⣿ ⣿⣷⠀⠀⠀⠀⠀⠙⢦⡀⠀⠀⠀⢀⡠⠊⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿ ⣾⣿⡄⠀⠀⠀⠀⠀⠀⠉⠙⠛⠋⠉⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿";
+
+		async function validateToken( channel, token ) {
+			let result = await fetch( `https://id.twitch.tv/oauth2/validate`, {
+				headers: {
+					"Authorization": `OAuth ${token}`
+				}
+			}).then( r => r.json() );
+			if( result.expires_in < 60 * 60 * 24 * 30 ) {
+				ComfyJS.Say( `@${channel} Extrollminator needs a refresh! Please renew the link at https://www.instafluff.tv/Extrollminator` );
+			}
+			else if( result.expires_in <= 0 ) {
+				console.log( "EXPIRED!" );
+			}
+			// console.log( result );
+			// console.log( moment().add( result.expires_in, "seconds" ).fromNow() );
+		}
+
+		async function lookupChannel( channelname, token ) {
+			let result = await fetch( `https://api.twitch.tv/helix/users?login=${channelname}`, {
+				headers: {
+					"Client-ID": "wu7qd6tn0uc5n05u2tjy3snl20da76",
+					"Authorization": `Bearer ${token}`
+				}
+			} ).then( r => r.json() );
+			// console.log( result );
+			channel = result.data[ 0 ];
+			// console.log( channel );
+		}
+
+		async function calculateUserComfiness( user, extra, token ) {
+			// console.log( extra );
+			let comfyScore = 0;
+			let isNew = await isNewbieToTwitch( extra.userId, token );
+			let isNewFollower = await isNewbieToChannel( extra.userId, channel.id, token );
+			let followScore = accounts[ extra.userId ] ? ( accounts[ extra.userId ].followDate ? Math.min( 12, moment().diff( moment( accounts[ extra.userId ].followDate ), "months" ) ) : 0 ) : 0;
+			let hasBadges = extra.userBadges || false;
+			let badgeScore = hasBadges ? calculateBadgeScore( extra.userBadges ) : 0;
+			let chatScore = accounts[ extra.userId ] ? accounts[ extra.userId ].chat : 0;
+
+			// console.log( user, isNew, isNewFollower, followScore, hasBadges, badgeScore, chatScore );
+
+			console.log( "extra", extra );
+			console.log( accounts );
+			console.log( accounts[ extra.userId ] );
+
+			// Calculate Score
+			if( isNew ) {
+				comfyScore -= 10;
+			}
+			if( accounts[ extra.userId ] && !accounts[ extra.userId ].isFollowing ) {
+				comfyScore -= 10;
+			}
+			if( isNewFollower ) {
+				comfyScore -= 5;
+			}
+			comfyScore += followScore;
+			comfyScore += badgeScore;
+			comfyScore += chatScore;
+			// console.log( user, comfyScore );
+			return comfyScore;
+		}
+
+		function calculateBadgeScore( badges ) {
+			let score = 0;
+			let badgeKeys = Object.keys( badges );
+			score += badgeKeys.length;
+			if( badges[ "broadcaster" ] || badges[ "moderator" ] || badges[ "vip" ] ) {
+				score += 100;
+			}
+			if( badges[ "founder" ] ) {
+				score += 12;
+			}
+			if( badges[ "subscriber" ] ) {
+				score += Math.min( 12, parseInt( badges[ "subscriber" ] ) );
+			}
+			return score;
+		}
+
+		function calculateMessageComfiness( message ) {
+			let messageScore = 20; // TODO: Reset to zero when adding sentiment score
+			if( isMessageASCIIingForTrouble( message ) ) {
+				console.log( "SUSPICIOUS" );
+				// console.log( message );
+				messageScore -= 11;
+			}
+			if( isWebLinkies( message ) ) {
+				console.log( "LINKIES!!!" );
+				// console.log( message );
+				messageScore -= 5;
+			}
+			// TODO: Add bad words filter / sentiment
+			return messageScore;
+		}
+
+		ComfyJS.onCommand = ( user, command, message, flags, extra ) => {
+			handleMessage( user, `!${command} ${message}`, extra, params.get( "oauth" ) );
+			if( flags.broadcaster || flags.mod ) {
+				if( command === "trolloff" ) {
+					turnOffExtrollminator();
+				}
+			}
+		};
+		ComfyJS.onChat = ( user, message, flags, self, extra ) => {
+			handleMessage( user, message, extra, params.get( "oauth" ) );
+		};
+		ComfyJS.onRaid = ( user, viewers ) => {
+			turnOffExtrollminator( 120000 );
+		};
+
+		function turnOffExtrollminator( time = 60000 ) {
+			if( immunityTimer ) {
+				clearTimeout( immunityTimer );
+			}
+			ComfyJS.Say( `Extrollminator is taking a break for ${time  / 1000} seconds` );
+			isExtrollminating = false;
+			immunityTimer = setTimeout( () => {
+				isExtrollminating = true;
+			}, time );
+		}
+
+		async function handleMessage( user, message, extra, token ) {
+			if( !isExtrollminating ) {
+				return;
+			}
+			let userScore = await calculateUserComfiness( user, extra, token );
+			if( accounts[ extra.userId ] ) {
+				// Check for last account message time
+				if( !accounts[ extra.userId ].timestamp ) {
+					accounts[ extra.userId ].timestamp = moment();
+				}
+				let chatTimeDiff = moment().diff( accounts[ extra.userId ].timestamp, "seconds" );
+				accounts[ extra.userId ].timestamp = moment();
+				// accounts[ extra.userId ].chat = Math.min( 10, Math.min( chatTimeDiff - 2, 1 ) + ( accounts[ extra.userId ].chat || 0 ) );
+			}
+			if( accounts[ extra.userId ] && !accounts[ extra.userId ].user ) {
+				accounts[ extra.userId ].user = user;
+			}
+
+			let messageScore = calculateMessageComfiness( message, extra );
+			console.log( user, userScore, messageScore, userScore + messageScore );
+			if( userScore + messageScore < 0 ) {
+				console.log( "NAUGHTY SUSPICIOUS MESSAGE FROM", user, message );
+				ComfyJS.DeleteMessage( extra.id );
+				ComfyJS.Say( `Sorry, ${user}. Your message seemed suspicious and has been auto-deleted for safety.` );
+			}
+		}
+
+		function isMessageASCIIingForTrouble( message ) {
+			if( !( /^[\x00-\xFF]*$/.test( message ) ||
+				/^[\x00-\x7F]*$/.test( message ) ) ) {
+				for( let n = 0; n < message.length; n++ ) {
+					var a = message.charCodeAt(n);
+					if( a >= 8592 && a < 11264 ) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		function isWebLinkies( message ) {
+			// TODO: Better link detection (e.g. www.silly-website-test.com)
+			return /(^|\s)(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?(\s|$)/igm.test( message ) ||
+				/(^|\s)(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]*\.?twitch\.tv(\/.*)?(\s|$)/igm.test( message );
+		}
+
+		async function isNewbieToChannel( userId, channelId, token ) {
+			if( userId === channelId ) { return false; }
+
+			if( !userId ) {
+				return false; // We can't determine the user
+			}
+
+			if( !accounts[ userId ] || accounts[ userId ].isFollowing === undefined ) {
+				let result = await fetch( `https://api.twitch.tv/helix/users/follows?from_id=${userId}&to_id=${channelId}`, {
+					headers: {
+						"Client-ID": "wu7qd6tn0uc5n05u2tjy3snl20da76",
+						"Authorization": `Bearer ${token}`
+					}
+				} ).then( r => r.json() );
+				// console.log( result );
+				if( result ) {
+					accounts[ userId ] = {
+						userId,
+						score: 0,
+						chat: 0,
+						isNew: false,
+						isFollowing: result.total > 0 ? true : false,
+						isNewFollower: false,
+					};
+					if( accounts[ userId ].isFollowing ) {
+						let hoursDiff = moment().diff( moment( result.data[ 0 ].followed_at ), "hours" );
+						accounts[ userId ].isNewFollower = ( hoursDiff <= 5 );
+						accounts[ userId ].followDate = result.data[ 0 ].followed_at;
+					}
+					return accounts[ userId ].isNewFollower;
+				}
+				return false;
+			}
+			else {
+				return accounts[ userId ].isNewFollower;
+			}
+		}
+
+		async function isNewbieToTwitch( userId, token ) {
+			if( !userId ) {
+				return false; // We can't determine the user
+			}
+			if( !accounts[ userId ] || accounts[ userId ].isNew === undefined ) {
+				let result = await fetch( `https://api.twitch.tv/kraken/users/${userId}`, {
+					headers: {
+						"Accept": "application/vnd.twitchtv.v5+json",
+						"Client-ID": "wu7qd6tn0uc5n05u2tjy3snl20da76",
+						"Authorization": `OAuth ${token}`
+					}
+				} ).then( r => r.json() );
+				if( result ) {
+					accounts[ userId ] = {
+						userId,
+						score: 0,
+						chat: 0,
+						isNew: false,
+					};
+					let dayDiff = moment().diff( moment( result.created_at ), "days" );
+					accounts[ userId ].isNew = ( dayDiff <= 1 );
+					return accounts[ userId ].isNew;
+				}
+				return false;
+			}
+			else {
+				return accounts[ userId ].isNew;
+			}
+		}
 	</script>
   </body>
 </html>
